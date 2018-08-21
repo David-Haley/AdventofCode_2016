@@ -141,7 +141,7 @@ procedure December_24 is
             -- something found
             Distance_Table (Start, To_Find) := Distance;
             Distance_Table (To_Find, Start) := Distance;
-         end if;
+         end if; -- Duct (X, Y).Duct_Character = To_Find
          -- clean up, reset Bread_Crumb
          for X in X_Coordinates loop
             for Y in Y_Coordinates loop

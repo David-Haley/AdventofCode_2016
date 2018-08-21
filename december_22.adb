@@ -5,6 +5,8 @@ with Ada.Strings.Maps.Constants; use Ada.Strings.Maps.Constants;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
 with Ada.Assertions; use Ada.Assertions;
+with Ada.Containers.Synchronized_Queue_Interfaces;
+with Ada.Containers.Bounded_Synchronized_Queues;
 
 procedure December_22 is
 
@@ -92,10 +94,6 @@ procedure December_22 is
 
       Exit_X : constant X_Coordinates := X_Coordinates'First;
       Exit_Y : constant Y_Coordinates := Y_Coordinates'First;
-      Target_X : X_Coordinates := X_Coordinates'Last;
-      Target_Y : Y_Coordinates := Y_Coordinates'First;
-      Empty_X : X_Coordinates;
-      Empty_Y : Y_Coordinates;
 
       type Nodes is record
          Size, Used, Available : Natural;
@@ -169,19 +167,91 @@ procedure December_22 is
                        Node_Grid (B_X, B_Y).Available then
                         Pair_Count := Pair_Count + 1;
                      end if; -- pair
-                  end loop;
-               end loop;
-            end loop;
-         end loop;
+                  end loop; -- B_Y in Y_Coordinates
+               end loop; -- B_X in X_Coordinates
+            end loop; -- A_Y in Y_Coordinates
+         end loop; -- A_X in X_Coordinates
          return Pair_Count;
       end Viable_Pairs;
+
+      procedure Visualise (Node_Grid : in Node_Grids;
+                           Target_X : in X_Coordinates;
+                           Target_Y : in Y_Coordinates;
+                           Empty_X : in X_Coordinates;
+                           Empty_Y : in Y_Coordinates) is
+
+      begin -- Visualise
+         for Y in Y_Coordinates loop
+            for X in X_Coordinates loop
+               if X = Empty_X and Y = Empty_Y then
+                  Put ("  E  ");
+               elsif X = Target_X and Y = Target_Y then
+                  Put ("  T  ");
+               else
+                  if X > X_Coordinates'First and then
+                    Node_Grid (X - 1, Y).Size >= Node_Grid (X, Y).Used then
+                     Put (" L");
+                  else
+                     Put (" x");
+                  end if; -- move left possible
+                  if X < X_Coordinates'Last and then
+                    Node_Grid (X + 1, Y).Size >= Node_Grid (X, Y).Used then
+                     Put ('R');
+                  else
+                     Put ('x');
+                  end if; -- move right possible
+                  if Y > Y_Coordinates'First and then
+                    Node_Grid (X, Y - 1).Size >= Node_Grid (X, Y).Used then
+                     Put ('U');
+                  else
+                     Put ('x');
+                  end if; -- move up possible
+                  if Y < Y_Coordinates'Last and then
+                    Node_Grid (X, Y + 1).Size >= Node_Grid (X, Y).Used then
+                     Put ('D');
+                  else
+                     Put ('x');
+                  end if; -- move down possible
+               end if; -- Node_Grid (X, Y).Used = 0
+            end loop; -- X in X_Coordinates
+            New_line;
+         end loop; -- Y in Y_Coordinates
+      end Visualise;
+
+      function Part_Two (Target_X : in X_Coordinates;
+                         Target_Y : in Y_Coordinates;
+                         Empty_X : in X_Coordinates;
+                         Empty_Y : in Y_Coordinates) return Natural is
+
+         function Manhattan (X1 : in X_Coordinates;
+                             Y1 : in Y_Coordinates;
+                             X2 : in X_Coordinates;
+                             Y2 : in Y_Coordinates) return Natural is
+         begin -- Manhattan
+            return abs (X2 - X1) + abs (Y2 - Y1);
+         end Manhattan;
+
+         Wall_End_X : constant X_Coordinates := 1;
+         Wall_End_Y : constant Y_Coordinates := 2;
+
+      begin -- Part_Two
+         return Manhattan (Wall_End_X, Wall_End_Y, Empty_X, Empty_Y) +
+           Manhattan (Target_X - 1, Target_Y, Wall_End_X, Wall_End_Y) +
+           (Target_X - 1) * 5 + 1;
+      end Part_Two;
+
+      Target_X : X_Coordinates := X_Coordinates'Last;
+      Target_Y : Y_Coordinates := Y_Coordinates'First;
+      Empty_X : X_Coordinates;
+      Empty_Y : Y_Coordinates;
 
    begin -- Process
       Read_Nodes (Input_File, Node_Grid, Empty_X, Empty_Y);
       Put_Line ("Pairs:" & Natural'Image (Viable_Pairs (Node_Grid)));
-      Put_Line ("Empty (" & X_Coordinates'Image (Empty_X) & ',' &
-                  Y_Coordinates'Image (Empty_Y) & ')');
-   end Process;
+      Visualise (Node_Grid, Target_X, Target_Y, Empty_X, Empty_Y);
+      Put_Line ("Part_Two" & Natural'Image (Part_Two (Target_X, Target_Y,
+                Empty_X, Empty_Y)));
+                end Process;
 
 begin -- December_22
    Open (Input_File, In_File, "20161222.txt");
